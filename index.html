@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام الاستقبال - عيادة الأسنان</title>
+    <style>
+        * { 
+            box-sizing: border-box; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+        body { 
+            background-color: #f0f4f8; 
+            padding: 20px; 
+            margin: 0; 
+        }
+        .container { 
+            max-width: 600px; 
+            background: #ffffff; 
+            margin: 30px auto; 
+            padding: 25px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+        }
+        h2 { 
+            color: #1a365d; 
+            text-align: center; 
+            margin-bottom: 20px; 
+        }
+        .form-group { 
+            margin-bottom: 15px; 
+        }
+        label { 
+            display: block; 
+            margin-bottom: 5px; 
+            font-weight: bold; 
+            color: #2d3748; 
+        }
+        input, select, textarea { 
+            width: 100%; 
+            padding: 10px; 
+            border: 1px solid #cbd5e0; 
+            border-radius: 6px; 
+            font-size: 14px; 
+        }
+        button { 
+            width: 100%; 
+            padding: 12px; 
+            background-color: #2b6cb0; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: 0.3s; 
+        }
+        button:hover { 
+            background-color: #2c5282; 
+        }
+        button:disabled {
+            background-color: #a0aec0;
+            cursor: not-allowed;
+        }
+        .status { 
+            margin-top: 15px; 
+            padding: 10px; 
+            border-radius: 6px; 
+            display: none; 
+            text-align: center; 
+            font-weight: bold; 
+        }
+        .success { 
+            background-color: #c6f6d5; 
+            color: #22543d; 
+        }
+        .error { 
+            background-color: #fed7d7; 
+            color: #742a2a; 
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>تسجيل مريض جديد - الاستقبال</h2>
+    <form id="patientForm">
+        <div class="form-group">
+            <label>اسم المريض الكامل:</label>
+            <input type="text" id="patient_name" required placeholder="مثال: أحمد محمد علي">
+        </div>
+        
+        <div class="form-group">
+            <label>رقم الهاتف:</label>
+            <input type="tel" id="patient_phone" required placeholder="09xxxxxxx">
+        </div>
+        
+        <div class="form-group">
+            <label>اختيار الطبيب المعالج:</label>
+            <select id="doctor_id" required>
+                <option value="">-- اختر الدكتور --</option>
+                <option value="dr_ahmed">د. عثمان هشام عثمان (تقويم أسنان)</option>
+                <option value="dr_sara">د. سارة (حشو وجذور)</option>
+                <option value="dr_omda">د. عمدة (جراحة وزراعة)</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>المبلغ المدفوع (جنيه):</label>
+            <input type="number" id="amount_paid" required placeholder="0.00" step="0.01">
+        </div>
+        
+        <div class="form-group">
+            <label>ملاحظات طبية / الشكوى:</label>
+            <textarea id="medical_notes" rows="3" placeholder="مثال: يعاني من ألم في الضرس العلوي  ..."></textarea>
+        </div>
+        
+        <button type="submit" id="submitBtn">حفظ وإرسال التنبيه للدكتور</button>
+    </form>
+    
+    <div id="statusMessage" class="status"></div>
+</div>
+
+<script>
+    // 🔗 رابط الـ Webhook الخاص بـ n8n
+    // ⚠️ ملاحظة مهمة:
+    // 1) تم تغيير المسار من /webhook-test/ إلى /webhook/ لأن webhook-test يعمل مرة واحدة فقط
+    //    بعد الضغط على "Execute workflow" في محرر n8n، وبعدها يتوقف عن الاستقبال.
+    //    المسار /webhook/ (الإنتاجي) يعمل دائماً طالما الـ workflow حالته "Active".
+    // 2) تأكد أن الـ workflow في n8n مفعّل فعلياً (زر Active شغال - أخضر) وليس فقط "Published".
+    // 3) رابط trycloudflare.com هذا مؤقت ويتغير بعد إعادة تشغيل السيرفر/التطبيق.
+    //    إذا توقف الفورم عن العمل بعد فترة، غالباً السبب أن هذا الرابط تغيّر
+    //    ويجب استبداله هنا برابط جديد (أو الأفضل استخدام دومين ثابت / n8n cloud).
+    const N8N_WEBHOOK_URL = 'https://gondola-jargon-brook.ngrok-free.dev/webhook/dental-patient';
+
+    document.getElementById('patientForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const btn = document.getElementById('submitBtn');
+        const statusDiv = document.getElementById('statusMessage');
+        
+        // تعطيل الزر مؤقتاً لمنع التكرار
+        btn.disabled = true;
+        btn.innerText = 'جاري الإرسال...';
+        statusDiv.style.display = 'none';
+
+        // تجهيز البيانات
+        const payload = {
+            patient_name: document.getElementById('patient_name').value,
+            patient_phone: document.getElementById('patient_phone').value,
+            doctor_id: document.getElementById('doctor_id').value,
+            doctor_name: document.getElementById('doctor_id').options[document.getElementById('doctor_id').selectedIndex].text,
+            amount_paid: document.getElementById('amount_paid').value,
+            medical_notes: document.getElementById('medical_notes').value || 'لا يوجد',
+            timestamp: new Date().toISOString()
+        };
+
+        try {
+            const response = await fetch(N8N_WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                statusDiv.className = 'status success';
+                statusDiv.innerText = '✅ تم إرسال البيانات واستدعاء الدكتور بنجاح!';
+                statusDiv.style.display = 'block';
+                document.getElementById('patientForm').reset();
+            } else {
+                statusDiv.className = 'status error';
+                statusDiv.innerText = `❌ خطأ في الاستجابة (${response.status}): تأكد أن الـ Workflow مفعل (Active) في n8n.`;
+                statusDiv.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Fetch Error:', error);
+            statusDiv.className = 'status error';
+            statusDiv.innerText = '❌ تعذر الاتصال بـ n8n! افتح الصفحة عبر Live Server وتأكد من تشغيل Docker/n8n.';
+            statusDiv.style.display = 'block';
+        } finally {
+            btn.disabled = false;
+            btn.innerText = 'حفظ وإرسال التنبيه للدكتور';
+        }
+    });
+</script>
+
+</body>
+</html>
