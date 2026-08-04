@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام الاستقبال - White Smile </title>
+    <title>نظام الاستقبال - عيادة الأسنان</title>
     <style>
         * { 
             box-sizing: border-box; 
@@ -32,10 +32,10 @@
         }
         .clinic-name {
             text-align: center;
-            color: #00d9a0 ;
+            color: #2b6cb0;
             font-weight: bold;
-            font-size: 50px;
-            margin-bottom: 30px;
+            font-size: 15px;
+            margin-bottom: 15px;
         }
         h2 { 
             color: #1a365d; 
@@ -63,7 +63,7 @@
         button { 
             width: 100%; 
             padding: 14px; 
-            background-color:#00d9a0; 
+            background-color: #2b6cb0; 
             color: white; 
             border: none; 
             border-radius: 6px; 
@@ -73,7 +73,7 @@
             transition: 0.3s; 
         }
         button:hover { 
-            background-color: #00d9a0; 
+            background-color: #2c5282; 
         }
         button:disabled {
             background-color: #a0aec0;
@@ -131,8 +131,8 @@
 <body>
 
 <div class="container">
-    <div class="logo-wrap"><span class="tooth"></span></div>
-    <div class="clinic-name">White Smile </div>
+    <div class="logo-wrap"><span class="tooth">🦷</span></div>
+    <div class="clinic-name">عيادة الأسنان</div>
     <h2>تسجيل مريض جديد - الاستقبال</h2>
 
     <div id="recoveredBanner" class="recovered-banner">
@@ -164,7 +164,7 @@
                 <option value="">-- اختر الدكتور --</option>
                 <option value="dr_ahmed">د. عثمان هشام عثمان (تقويم أسنان)</option>
                 <option value="dr_sara">د. سارة (حشو وجذور)</option>
-                <option value="dr_omda">د. عماد  (جراحة وزراعة)</option>
+                <option value="dr_omda">د. عمدة (جراحة وزراعة)</option>
             </select>
         </div>
 
@@ -283,7 +283,8 @@
         btn.innerText = 'جاري الإرسال...';
         statusDiv.style.display = 'none';
 
-        const payload = {form_type: 'reception',
+        const payload = {
+            form_type: 'reception',
             patient_name: document.getElementById('patient_name').value,
             patient_phone: document.getElementById('patient_phone').value,
             national_id: document.getElementById('national_id').value || 'لا يوجد',
@@ -312,7 +313,11 @@
                 body: JSON.stringify(payload)
             });
 
-            if (response.ok) {
+            const resultText = await response.text();
+            let result;
+            try { result = JSON.parse(resultText); } catch (e) { result = null; }
+
+            if (response.ok && result && result.status === 'ok') {
                 statusDiv.className = 'status success';
                 statusDiv.innerText = '✅ تم إرسال البيانات واستدعاء الدكتور بنجاح!';
                 statusDiv.style.display = 'block';
@@ -321,7 +326,7 @@
                 document.getElementById('recoveredBanner').style.display = 'none';
             } else {
                 statusDiv.className = 'status error';
-                statusDiv.innerText = `❌ خطأ في الاستجابة (${response.status}): تأكد أن الـ Workflow مفعل (Active) في n8n.`;
+                statusDiv.innerText = '❌ الخادم رد بخطأ فعلي: ' + (result && result.message ? result.message : resultText);
                 statusDiv.style.display = 'block';
             }
         } catch (error) {
