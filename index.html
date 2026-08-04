@@ -283,7 +283,7 @@
         btn.innerText = 'جاري الإرسال...';
         statusDiv.style.display = 'none';
 
-        const payload = {
+        const payload = {form_type: 'reception',
             patient_name: document.getElementById('patient_name').value,
             patient_phone: document.getElementById('patient_phone').value,
             national_id: document.getElementById('national_id').value || 'لا يوجد',
