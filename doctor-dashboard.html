@@ -85,27 +85,77 @@
   .setup-note{background:var(--teal-tint);border:1px solid #BFE1DA;border-radius:12px;padding:12px 14px;font-size:12.5px;color:var(--teal-deep);margin-bottom:20px;line-height:1.9;}
   .setup-note code{background:#fff;padding:1px 6px;border-radius:6px;font-size:11.5px;}
   .error-note{background:var(--urgent-tint);color:var(--urgent);border:1px solid #F3C4C8;}
+
+  /* شاشة الدخول */
+  .login-screen{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .login-card{
+    width:100%; max-width:380px; background:var(--surface); border:1px solid var(--border);
+    border-radius:20px; padding:32px 28px; box-shadow:var(--shadow); text-align:center;
+  }
+  .login-card h1{font-family:'Almarai',sans-serif;font-weight:800;font-size:19px;color:var(--teal-deep);margin:14px 0 4px;}
+  .login-card p.sub{font-size:13px;color:var(--muted);margin:0 0 22px;}
+  .login-field{text-align:right;margin-bottom:14px;}
+  .login-field label{display:block;font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:6px;}
+  .login-field select, .login-field input{
+    width:100%; border:1.5px solid var(--border); border-radius:10px; padding:11px 13px;
+    font-family:'Tajawal',sans-serif; font-size:14.5px; color:var(--ink); background:var(--bg);
+  }
+  .login-field select:focus, .login-field input:focus{outline:none;border-color:var(--teal);}
+  #loginBtn{
+    width:100%; margin-top:6px; background:var(--teal); color:#fff; border:none; border-radius:10px;
+    padding:12px; font-family:'Tajawal',sans-serif; font-weight:700; font-size:14.5px; cursor:pointer;
+  }
+  #loginBtn:hover{background:var(--teal-deep);}
+  .login-error{color:var(--urgent); font-size:12.5px; font-weight:700; margin-top:12px;}
+
+  .doctor-badge{display:flex;align-items:center;gap:10px;}
+  .doctor-badge span{font-family:'Almarai',sans-serif;font-weight:700;font-size:14.5px;color:var(--teal-deep);}
+  #logoutBtn{
+    border:1.5px solid var(--border); background:var(--surface); border-radius:10px; padding:8px 14px;
+    font-size:12.5px; font-weight:700; color:var(--muted); cursor:pointer;
+  }
+  #logoutBtn:hover{color:var(--urgent); border-color:#F3C4C8;}
 </style>
 </head>
 <body>
-<div class="wrap">
+
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="tooth-mark" style="margin:0 auto;"></div>
+    <h1>لوحة الطبيب</h1>
+    <p class="sub">White Smile — اختار اسمك وادخل كلمة المرور</p>
+    <div class="login-field">
+      <label>الاسم</label>
+      <select id="loginDoctorSelect"></select>
+    </div>
+    <div class="login-field">
+      <label>كلمة المرور</label>
+      <input type="password" id="loginPassword" placeholder="••••••••">
+    </div>
+    <button id="loginBtn">دخول</button>
+    <div class="login-error" id="loginError" style="display:none;">كلمة المرور غير صحيحة، حاول تاني</div>
+  </div>
+</div>
+
+<div class="wrap" id="dashboardRoot" style="display:none;">
 
   <header>
     <div class="brand">
-      <div class="tooth-mark">🦷</div>
+      <div class="tooth-mark"></div>
       <div class="brand-text">
         <h1>لوحة الطبيب</h1>
         <p>White Smile — متابعة المواعيد لحظة بلحظة</p>
       </div>
     </div>
-    <select id="doctorSelect"></select>
+    <div class="doctor-badge">
+      <span id="currentDoctorLabel"></span>
+      <button id="logoutBtn">تسجيل خروج</button>
+    </div>
   </header>
 
-  <!-- عدّل الرابط ده لو غيّرت رابط النشر (Deploy) بتاع Code.gs -->
-  <div class="setup-note" id="configNote">
-    🔗 الرابط اللي بتقرأ منه الصفحة دي: <code id="urlDisplay"></code>
-    <br>لو مش شغال، افتح <code>لوحة_الطبيب.html</code> بمحرر نصوص وغيّر قيمة <code>APPS_SCRIPT_URL</code> في أول السكريبت.
-  </div>
+ 
 
   <div class="stats">
     <div class="stat-card ring">
@@ -140,25 +190,73 @@
 <script>
 // ⚠️ نفس رابط Google Apps Script المستخدم في فورم الاستقبال (بعد Deploy)
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwDVqknhSxzCxiklWLOs8Bj5UQxrkrGMT84Eowdj6J4otB_291yLkZcUq9eqwjprAAS/exec';
-document.getElementById('urlDisplay').textContent = APPS_SCRIPT_URL;
 
 // "key" ده جزء مميز من اسم الدكتور بنستخدمه للمطابقة (includes) بدل المطابقة الحرفية الكاملة،
 // عشان أي فرق بسيط في النص المخزّن بالشيت (زي غياب "د." أو نقطة زيادة) ميبوظش الفلتر
+// ⚠️ غيّر كلمة السر (password) بتاعة كل دكتور لحاجة هو بس عارفها قبل ما تشارك الرابط
 const DOCTORS = [
-  { key: 'عثمان هشام عثمان', label: 'د. عثمان هشام عثمان (تقويم أسنان)' },
-  { key: 'سارة',              label: 'د. سارة (حشو وجذور)' },
-  { key: 'عمدة',               label: 'د. عمدة (جراحة وزراعة)' },
+  { key: 'عثمان هشام عثمان', label: 'د. عثمان هشام عثمان (تقويم أسنان)', password: 'SO2026' },
+  { key: 'سارة',              label: 'د. سارة (حشو وجذور)',                 password: 'S2026' },
+  { key: 'عمدة',               label: 'د. عمدة (جراحة وزراعة)',              password: 'O2026' },
 ];
 
-const doctorSelect = document.getElementById('doctorSelect');
+const AUTH_KEY = 'loggedInDoctorKey';
+let currentDoctorKey = null;
+
+// ---------- تجهيز شاشة الدخول ----------
+const loginDoctorSelect = document.getElementById('loginDoctorSelect');
 DOCTORS.forEach(doc=>{
   const opt = document.createElement('option');
   opt.value = doc.key;
   opt.textContent = doc.label;
-  doctorSelect.appendChild(opt);
+  loginDoctorSelect.appendChild(opt);
 });
-let savedDoc = localStorage.getItem('lastSelectedDoctor');
-doctorSelect.value = DOCTORS.some(d=>d.key===savedDoc) ? savedDoc : DOCTORS[0].key;
+
+function showLogin(){
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('dashboardRoot').style.display = 'none';
+}
+
+function enterDashboard(key){
+  const doc = DOCTORS.find(d=>d.key===key);
+  if(!doc) return;
+  currentDoctorKey = key;
+  document.getElementById('currentDoctorLabel').textContent = doc.label;
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('dashboardRoot').style.display = 'block';
+  fetchPatients();
+}
+
+document.getElementById('loginBtn').addEventListener('click', ()=>{
+  const key = loginDoctorSelect.value;
+  const pass = document.getElementById('loginPassword').value;
+  const doc = DOCTORS.find(d=>d.key===key);
+  const errBox = document.getElementById('loginError');
+  if(doc && pass === doc.password){
+    errBox.style.display = 'none';
+    localStorage.setItem(AUTH_KEY, key);
+    enterDashboard(key);
+  }else{
+    errBox.style.display = 'block';
+  }
+});
+document.getElementById('loginPassword').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') document.getElementById('loginBtn').click();
+});
+document.getElementById('logoutBtn').addEventListener('click', ()=>{
+  localStorage.removeItem(AUTH_KEY);
+  currentDoctorKey = null;
+  document.getElementById('loginPassword').value = '';
+  showLogin();
+});
+
+// دخول تلقائي لو الدكتور مسجّل دخوله من قبل على نفس الجهاز
+const savedAuthKey = localStorage.getItem(AUTH_KEY);
+if(savedAuthKey && DOCTORS.some(d=>d.key===savedAuthKey)){
+  enterDashboard(savedAuthKey);
+}else{
+  showLogin();
+}
 
 let activeDateFilter = 'today';
 let searchTerm = '';
@@ -223,8 +321,8 @@ function escapeHtml(str){
 
 function render(){
   buildDateChips();
-  const docName = doctorSelect.value;
-  localStorage.setItem('lastSelectedDoctor', docName);
+  const docName = currentDoctorKey;
+  if(!docName) return;
 
   const container = document.getElementById('patientList');
 
@@ -338,11 +436,9 @@ function render(){
 }
 
 document.getElementById('searchBox').addEventListener('input', e=>{ searchTerm = e.target.value; render(); });
-doctorSelect.addEventListener('change', render);
 document.getElementById('refreshBtn').addEventListener('click', fetchPatients);
 
-fetchPatients();
-setInterval(fetchPatients, 60000); // تحديث تلقائي كل دقيقة
+setInterval(()=>{ if(currentDoctorKey) fetchPatients(); }, 60000); // تحديث تلقائي كل دقيقة لو الدكتور مسجّل دخول
 </script>
 </body>
 </html>
