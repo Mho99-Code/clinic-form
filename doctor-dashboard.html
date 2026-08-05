@@ -123,18 +123,18 @@
 
 <div class="login-screen" id="loginScreen">
   <div class="login-card">
-    <div class="tooth-mark" style="margin:0 auto;"></div>
+    <div class="tooth-mark" style="margin:0 auto;">🦷</div>
     <h1>لوحة الطبيب</h1>
     <p class="sub">White Smile — اختار اسمك وادخل كلمة المرور</p>
     <div class="login-field">
       <label>الاسم</label>
-      <select id="loginDoctorSelect"></select>
+      <select id="loginDoctorSelect" disabled><option value="">-- جاري تحميل الأطباء... --</option></select>
     </div>
     <div class="login-field">
       <label>كلمة المرور</label>
       <input type="password" id="loginPassword" placeholder="••••••••">
     </div>
-    <button id="loginBtn">دخول</button>
+    <button id="loginBtn" disabled>دخول</button>
     <div class="login-error" id="loginError" style="display:none;">كلمة المرور غير صحيحة، حاول تاني</div>
   </div>
 </div>
@@ -143,7 +143,7 @@
 
   <header>
     <div class="brand">
-      <div class="tooth-mark"></div>
+      <div class="tooth-mark">🦷</div>
       <div class="brand-text">
         <h1>لوحة الطبيب</h1>
         <p>White Smile — متابعة المواعيد لحظة بلحظة</p>
@@ -155,7 +155,11 @@
     </div>
   </header>
 
- 
+  <!-- عدّل الرابط ده لو غيّرت رابط النشر (Deploy) بتاع Code.gs -->
+  <div class="setup-note" id="configNote">
+    🔗 الرابط اللي بتقرأ منه الصفحة دي: <code id="urlDisplay"></code>
+    <br>لو مش شغال، افتح <code>لوحة_الطبيب.html</code> بمحرر نصوص وغيّر قيمة <code>APPS_SCRIPT_URL</code> في أول السكريبت.
+  </div>
 
   <div class="stats">
     <div class="stat-card ring">
@@ -190,70 +194,114 @@
 <script>
 // ⚠️ نفس رابط Google Apps Script المستخدم في فورم الاستقبال (بعد Deploy)
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwDVqknhSxzCxiklWLOs8Bj5UQxrkrGMT84Eowdj6J4otB_291yLkZcUq9eqwjprAAS/exec';
+document.getElementById('urlDisplay').textContent = APPS_SCRIPT_URL;
 
-// "key" ده جزء مميز من اسم الدكتور بنستخدمه للمطابقة (includes) بدل المطابقة الحرفية الكاملة،
-// عشان أي فرق بسيط في النص المخزّن بالشيت (زي غياب "د." أو نقطة زيادة) ميبوظش الفلتر
-// ⚠️ غيّر كلمة السر (password) بتاعة كل دكتور لحاجة هو بس عارفها قبل ما تشارك الرابط
-const DOCTORS = [
-  { key: 'عثمان هشام عثمان', label: 'د. عثمان هشام عثمان (تقويم أسنان)', password: 'SO2026' },
-  { key: 'سارة',              label: 'د. سارة (حشو وجذور)',                 password: 'S2026' },
-  { key: 'عمدة',               label: 'د. عمدة (جراحة وزراعة)',              password: 'O2026' },
-];
-
-const AUTH_KEY = 'loggedInDoctorKey';
+const AUTH_TOKEN_KEY = 'doctorAuthToken';
+const AUTH_KEY_KEY = 'doctorAuthKey';
+const AUTH_LABEL_KEY = 'doctorAuthLabel';
 let currentDoctorKey = null;
+let authToken = null;
 
-// ---------- تجهيز شاشة الدخول ----------
+// ---------- تحميل قائمة أسماء الأطباء (بدون باسوردات - دي بيانات عامة بس) ----------
 const loginDoctorSelect = document.getElementById('loginDoctorSelect');
-DOCTORS.forEach(doc=>{
-  const opt = document.createElement('option');
-  opt.value = doc.key;
-  opt.textContent = doc.label;
-  loginDoctorSelect.appendChild(opt);
-});
 
-function showLogin(){
-  document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('dashboardRoot').style.display = 'none';
+async function loadDoctorsForLogin(){
+  try{
+    const url = new URL(APPS_SCRIPT_URL);
+    url.searchParams.set('action','doctors');
+    const res = await fetch(url.toString());
+    const data = await res.json();
+    if(data.status !== 'ok' || !Array.isArray(data.data) || data.data.length === 0){
+      throw new Error(data.message || 'لا يوجد أطباء مسجلين');
+    }
+    loginDoctorSelect.innerHTML = '';
+    data.data.forEach(doc=>{
+      const opt = document.createElement('option');
+      opt.value = doc.key;
+      opt.textContent = doc.label;
+      loginDoctorSelect.appendChild(opt);
+    });
+    loginDoctorSelect.disabled = false;
+    document.getElementById('loginBtn').disabled = false;
+  }catch(err){
+    console.error(err);
+    loginDoctorSelect.innerHTML = '<option value="">⚠️ تعذر تحميل قائمة الأطباء</option>';
+  }
 }
 
-function enterDashboard(key){
-  const doc = DOCTORS.find(d=>d.key===key);
-  if(!doc) return;
+function showLogin(message){
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('dashboardRoot').style.display = 'none';
+  const errBox = document.getElementById('loginError');
+  if(message){
+    errBox.textContent = message;
+    errBox.style.display = 'block';
+  }
+}
+
+function enterDashboard(key, label, token){
   currentDoctorKey = key;
-  document.getElementById('currentDoctorLabel').textContent = doc.label;
+  authToken = token;
+  localStorage.setItem(AUTH_TOKEN_KEY, token);
+  localStorage.setItem(AUTH_KEY_KEY, key);
+  localStorage.setItem(AUTH_LABEL_KEY, label);
+  document.getElementById('currentDoctorLabel').textContent = label;
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('dashboardRoot').style.display = 'block';
   fetchPatients();
 }
 
-document.getElementById('loginBtn').addEventListener('click', ()=>{
+document.getElementById('loginBtn').addEventListener('click', async ()=>{
   const key = loginDoctorSelect.value;
   const pass = document.getElementById('loginPassword').value;
-  const doc = DOCTORS.find(d=>d.key===key);
   const errBox = document.getElementById('loginError');
-  if(doc && pass === doc.password){
-    errBox.style.display = 'none';
-    localStorage.setItem(AUTH_KEY, key);
-    enterDashboard(key);
-  }else{
+  const btn = document.getElementById('loginBtn');
+  if(!key || !pass){ errBox.textContent='اختار اسمك واكتب كلمة المرور'; errBox.style.display='block'; return; }
+  errBox.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'جاري الدخول...';
+  try{
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'login', doctorKey: key, password: pass })
+    });
+    const data = await res.json();
+    if(data.status === 'ok' && data.token){
+      document.getElementById('loginPassword').value = '';
+      enterDashboard(data.doctorKey, data.label, data.token);
+    }else{
+      errBox.textContent = data.message || 'كلمة المرور غير صحيحة';
+      errBox.style.display = 'block';
+    }
+  }catch(err){
+    errBox.textContent = 'تعذر الاتصال بالسيرفر، جرب تاني';
     errBox.style.display = 'block';
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'دخول';
   }
 });
 document.getElementById('loginPassword').addEventListener('keydown', e=>{
   if(e.key === 'Enter') document.getElementById('loginBtn').click();
 });
 document.getElementById('logoutBtn').addEventListener('click', ()=>{
-  localStorage.removeItem(AUTH_KEY);
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(AUTH_KEY_KEY);
+  localStorage.removeItem(AUTH_LABEL_KEY);
   currentDoctorKey = null;
+  authToken = null;
   document.getElementById('loginPassword').value = '';
   showLogin();
 });
 
-// دخول تلقائي لو الدكتور مسجّل دخوله من قبل على نفس الجهاز
-const savedAuthKey = localStorage.getItem(AUTH_KEY);
-if(savedAuthKey && DOCTORS.some(d=>d.key===savedAuthKey)){
-  enterDashboard(savedAuthKey);
+// دخول تلقائي لو فيه جلسة (token) شغالة محفوظة من قبل على نفس الجهاز
+loadDoctorsForLogin();
+const savedToken = localStorage.getItem(AUTH_TOKEN_KEY);
+const savedKey = localStorage.getItem(AUTH_KEY_KEY);
+const savedLabel = localStorage.getItem(AUTH_LABEL_KEY);
+if(savedToken && savedKey && savedLabel){
+  enterDashboard(savedKey, savedLabel, savedToken); // لو التوكن منتهي، fetchPatients هيرجعنا لشاشة الدخول تلقائي
 }else{
   showLogin();
 }
@@ -263,11 +311,6 @@ let searchTerm = '';
 let allPatients = [];
 let loadError = null;
 
-function todayISO(){
-  const d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-}
-
 async function fetchPatients(){
   const btn = document.getElementById('refreshBtn');
   btn.disabled = true;
@@ -276,8 +319,17 @@ async function fetchPatients(){
   try{
     const url = new URL(APPS_SCRIPT_URL);
     url.searchParams.set('action','list');
+    url.searchParams.set('token', authToken || '');
     const res = await fetch(url.toString());
     const json = await res.json();
+    if(json.unauthorized){
+      // التوكن منتهي أو غير صالح - نرجّع الدكتور لشاشة الدخول
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem(AUTH_KEY_KEY);
+      localStorage.removeItem(AUTH_LABEL_KEY);
+      showLogin('انتهت الجلسة، سجل دخول تاني من فضلك');
+      return;
+    }
     if(json.status !== 'ok') throw new Error(json.message || 'خطأ غير معروف');
     allPatients = json.data.map(p => ({ ...p, id: String(p.row) }));
   }catch(err){
@@ -419,11 +471,20 @@ function render(){
       btn.disabled = true;
       btn.textContent = '...';
       try{
-        await fetch(APPS_SCRIPT_URL, {
+        const res = await fetch(APPS_SCRIPT_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'updateStatus', row: row, status: newStatus })
+          body: JSON.stringify({ action: 'updateStatus', row: row, status: newStatus, token: authToken })
         });
+        const data = await res.json();
+        if(data.unauthorized){
+          localStorage.removeItem(AUTH_TOKEN_KEY);
+          localStorage.removeItem(AUTH_KEY_KEY);
+          localStorage.removeItem(AUTH_LABEL_KEY);
+          showLogin('انتهت الجلسة، سجل دخول تاني من فضلك');
+          return;
+        }
+        if(data.status !== 'ok') throw new Error(data.message || 'فشل التحديث');
         const target = allPatients.find(p=>String(p.row)===String(row));
         if(target) target.status = newStatus;
         render();
