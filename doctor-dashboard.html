@@ -142,22 +142,23 @@
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwaJU3q_zr1npQ4Z-X9Op_zSNNzvmFH5vQf9d_iDZgI1pfB3Ag7IiHSQAocX5gag6aA/exec';
 document.getElementById('urlDisplay').textContent = APPS_SCRIPT_URL;
 
-// لازم يطابق نص الـ option بالظبط زي ما هو في فورم الاستقبال
+// "key" ده جزء مميز من اسم الدكتور بنستخدمه للمطابقة (includes) بدل المطابقة الحرفية الكاملة،
+// عشان أي فرق بسيط في النص المخزّن بالشيت (زي غياب "د." أو نقطة زيادة) ميبوظش الفلتر
 const DOCTORS = [
-  { name: 'د. عثمان هشام عثمان (تقويم أسنان)' },
-  { name: 'د. سارة (حشو وجذور)' },
-  { name: 'د. عمدة (جراحة وزراعة)' },
+  { key: 'عثمان هشام عثمان', label: 'د. عثمان هشام عثمان (تقويم أسنان)' },
+  { key: 'سارة',              label: 'د. سارة (حشو وجذور)' },
+  { key: 'عمدة',               label: 'د. عمدة (جراحة وزراعة)' },
 ];
 
 const doctorSelect = document.getElementById('doctorSelect');
 DOCTORS.forEach(doc=>{
   const opt = document.createElement('option');
-  opt.value = doc.name;
-  opt.textContent = doc.name;
+  opt.value = doc.key;
+  opt.textContent = doc.label;
   doctorSelect.appendChild(opt);
 });
 let savedDoc = localStorage.getItem('lastSelectedDoctor');
-doctorSelect.value = DOCTORS.some(d=>d.name===savedDoc) ? savedDoc : DOCTORS[0].name;
+doctorSelect.value = DOCTORS.some(d=>d.key===savedDoc) ? savedDoc : DOCTORS[0].key;
 
 let activeDateFilter = 'today';
 let searchTerm = '';
@@ -242,7 +243,7 @@ function render(){
     return;
   }
 
-  let list = allPatients.filter(p => p.doctorName === docName);
+  let list = allPatients.filter(p => (p.doctorName||'').includes(docName));
   const today = new Date();
   if(activeDateFilter === 'today'){
     list = list.filter(p => isSameDay(p.appointmentTime, today));
@@ -253,7 +254,7 @@ function render(){
   }
   list.sort((a,b)=> new Date(a.appointmentTime||0) - new Date(b.appointmentTime||0));
 
-  const todaysAll = allPatients.filter(p => p.doctorName === docName && isSameDay(p.appointmentTime, today));
+  const todaysAll = allPatients.filter(p => (p.doctorName||'').includes(docName) && isSameDay(p.appointmentTime, today));
   const doneCount = todaysAll.filter(p=>p.status==='تم الكشف').length;
   const pendingCount = todaysAll.filter(p=>p.status!=='تم الكشف' && p.visitType!=='طوارئ').length;
   const urgentCount = todaysAll.filter(p=>p.visitType==='طوارئ' && p.status!=='تم الكشف').length;
