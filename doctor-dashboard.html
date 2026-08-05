@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة الطبيب — White Smile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F6FAF9; --surface:#FFFFFF; --teal:#0E6B62; --teal-deep:#0A4F49; --teal-tint:#E4F3F0;
+    --ink:#14302B; --muted:#6B8079; --border:#DCE8E5;
+    --done:#2F9E68; --done-tint:#E4F5EC;
+    --pending:#E0982B; --pending-tint:#FBF0DD;
+    --urgent:#D64550; --urgent-tint:#FBE6E7;
+    --radius:16px; --shadow:0 2px 10px rgba(14,107,98,0.06), 0 1px 2px rgba(14,107,98,0.08);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Tajawal',sans-serif;min-height:100vh;}
+  .wrap{max-width:960px;margin:0 auto;padding:20px 18px 60px;}
+
+  header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px 4px 22px;flex-wrap:wrap;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .tooth-mark{width:44px;height:44px;border-radius:12px;background:linear-gradient(155deg,var(--teal),var(--teal-deep));display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;flex-shrink:0;box-shadow:var(--shadow);}
+  .brand-text h1{font-family:'Almarai',sans-serif;font-weight:800;font-size:20px;margin:0;color:var(--teal-deep);}
+  .brand-text p{margin:2px 0 0;font-size:12.5px;color:var(--muted);}
+
+  select#doctorSelect{
+    appearance:none;
+    background:var(--surface) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%230E6B62" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>') left 14px center no-repeat;
+    border:1.5px solid var(--border); border-radius:12px; padding:12px 40px 12px 16px;
+    font-family:'Tajawal',sans-serif; font-weight:700; font-size:14.5px; color:var(--teal-deep);
+    min-width:270px; cursor:pointer; box-shadow:var(--shadow);
+  }
+  select#doctorSelect:focus-visible, button:focus-visible{outline:3px solid #9FD4CB;outline-offset:2px;}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px;}
+  @media (max-width:640px){ .stats{grid-template-columns:repeat(2,1fr);} }
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;}
+  .stat-card .num{font-family:'Almarai',sans-serif;font-weight:800;font-size:26px;color:var(--teal-deep);}
+  .stat-card .lbl{font-size:12.5px;color:var(--muted);}
+  .stat-card.ring{flex-direction:row;align-items:center;justify-content:space-between;}
+  .ring-svg{transform:rotate(-90deg);}
+  .ring-bg{fill:none;stroke:var(--teal-tint);stroke-width:6;}
+  .ring-fg{fill:none;stroke:var(--teal);stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset .6s ease;}
+
+  .toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
+  .chip-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .filter-chip{border:1.5px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 14px;font-size:12.5px;font-family:'Tajawal',sans-serif;font-weight:700;cursor:pointer;color:var(--muted);}
+  .filter-chip.active{background:var(--teal);border-color:var(--teal);color:#fff;}
+  #refreshBtn{border:1.5px solid var(--border);background:var(--surface);border-radius:10px;padding:8px 14px;font-size:12.5px;font-weight:700;color:var(--teal-deep);cursor:pointer;}
+  #refreshBtn:disabled{opacity:.6;cursor:default;}
+  .search-row{display:flex;gap:8px;margin:12px 0 18px;flex-wrap:wrap;}
+  .search-row input[type="search"]{flex:1;min-width:160px;font-family:'Tajawal',sans-serif;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13.5px;background:var(--surface);color:var(--ink);}
+
+  .section-head{display:flex;align-items:baseline;justify-content:space-between;margin:6px 2px 12px;}
+  .section-head h2{font-family:'Almarai',sans-serif;font-weight:800;font-size:16.5px;margin:0;color:var(--ink);}
+  .section-head .count{font-size:12.5px;color:var(--muted);}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow);display:flex;gap:14px;align-items:flex-start;position:relative;overflow:hidden;}
+  .card::before{content:"";position:absolute;top:0;right:0;bottom:0;width:5px;background:var(--pending);}
+  .card.done::before{background:var(--done);}
+  .card.urgent::before{background:var(--urgent);}
+  .card-time{font-family:'Almarai',sans-serif;font-weight:800;font-size:15px;color:var(--teal-deep);min-width:64px;text-align:center;}
+  .card-time span{display:block;font-size:10.5px;font-weight:400;color:var(--muted);margin-top:2px;}
+  .card-body{flex:1;min-width:0;}
+  .card-body h3{margin:0 0 4px;font-family:'Almarai',sans-serif;font-size:15.5px;font-weight:700;color:var(--ink);}
+  .card-meta{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12.5px;color:var(--muted);margin-bottom:8px;}
+  .card-meta b{color:var(--ink);font-weight:500;}
+  .badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;}
+  .badge.done{background:var(--done-tint);color:var(--done);}
+  .badge.pending{background:var(--pending-tint);color:var(--pending);}
+  .badge.urgent{background:var(--urgent-tint);color:var(--urgent);}
+  .card-notes{font-size:13px;color:var(--ink);background:var(--teal-tint);border-radius:10px;padding:8px 10px;margin-top:8px;}
+  .card-actions{display:flex;flex-direction:column;gap:6px;}
+  .icon-btn{border:1.5px solid var(--border);background:var(--surface);border-radius:10px;padding:8px 10px;font-size:12px;font-family:'Tajawal',sans-serif;font-weight:700;cursor:pointer;color:var(--ink);white-space:nowrap;text-decoration:none;text-align:center;}
+  .icon-btn.primary{background:var(--teal);border-color:var(--teal);color:#fff;}
+  .icon-btn.primary.done{background:var(--done);border-color:var(--done);}
+  .icon-btn:disabled{opacity:.6;cursor:default;}
+
+  .empty-state, .load-state{text-align:center;padding:48px 20px;color:var(--muted);background:var(--surface);border:1.5px dashed var(--border);border-radius:var(--radius);}
+  .empty-state h3, .load-state h3{font-family:'Almarai',sans-serif;color:var(--ink);margin:0 0 6px;font-size:15px;}
+  .empty-state p, .load-state p{font-size:13px;margin:0;max-width:380px;margin:0 auto;}
+
+  .setup-note{background:var(--teal-tint);border:1px solid #BFE1DA;border-radius:12px;padding:12px 14px;font-size:12.5px;color:var(--teal-deep);margin-bottom:20px;line-height:1.9;}
+  .setup-note code{background:#fff;padding:1px 6px;border-radius:6px;font-size:11.5px;}
+  .error-note{background:var(--urgent-tint);color:var(--urgent);border:1px solid #F3C4C8;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="tooth-mark">🦷</div>
+      <div class="brand-text">
+        <h1>لوحة الطبيب</h1>
+        <p>White Smile — متابعة المواعيد لحظة بلحظة</p>
+      </div>
+    </div>
+    <select id="doctorSelect"></select>
+  </header>
+
+  <!-- عدّل الرابط ده لو غيّرت رابط النشر (Deploy) بتاع Code.gs -->
+  <div class="setup-note" id="configNote">
+    🔗 الرابط اللي بتقرأ منه الصفحة دي: <code id="urlDisplay"></code>
+    <br>لو مش شغال، افتح <code>لوحة_الطبيب.html</code> بمحرر نصوص وغيّر قيمة <code>APPS_SCRIPT_URL</code> في أول السكريبت.
+  </div>
+
+  <div class="stats">
+    <div class="stat-card ring">
+      <div><div class="num" id="statDoneCount">0/0</div><div class="lbl">تم الكشف اليوم</div></div>
+      <svg class="ring-svg" width="46" height="46" viewBox="0 0 46 46">
+        <circle class="ring-bg" cx="23" cy="23" r="19"/>
+        <circle class="ring-fg" id="progressRing" cx="23" cy="23" r="19" stroke-dasharray="119.4" stroke-dashoffset="119.4"/>
+      </svg>
+    </div>
+    <div class="stat-card"><div class="num" id="statToday">0</div><div class="lbl">مواعيد اليوم</div></div>
+    <div class="stat-card"><div class="num" id="statPending">0</div><div class="lbl">في الانتظار</div></div>
+    <div class="stat-card"><div class="num" id="statUrgent">0</div><div class="lbl">حالات طوارئ</div></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="chip-row" id="dateChips"></div>
+    <button id="refreshBtn">↻ تحديث</button>
+  </div>
+  <div class="search-row">
+    <input type="search" id="searchBox" placeholder="بحث بالاسم أو رقم الهاتف...">
+  </div>
+
+  <div class="section-head">
+    <h2>قائمة المرضى</h2>
+    <span class="count" id="listCount"></span>
+  </div>
+
+  <div id="patientList"></div>
+
+</div>
+
+<script>
+// ⚠️ نفس رابط Google Apps Script المستخدم في فورم الاستقبال (بعد Deploy)
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwaJU3q_zr1npQ4Z-X9Op_zSNNzvmFH5vQf9d_iDZgI1pfB3Ag7IiHSQAocX5gag6aA/exec';
+document.getElementById('urlDisplay').textContent = APPS_SCRIPT_URL;
+
+// لازم يطابق نص الـ option بالظبط زي ما هو في فورم الاستقبال
+const DOCTORS = [
+  { name: 'د. عثمان هشام عثمان (تقويم أسنان)' },
+  { name: 'د. سارة (حشو وجذور)' },
+  { name: 'د. عمدة (جراحة وزراعة)' },
+];
+
+const doctorSelect = document.getElementById('doctorSelect');
+DOCTORS.forEach(doc=>{
+  const opt = document.createElement('option');
+  opt.value = doc.name;
+  opt.textContent = doc.name;
+  doctorSelect.appendChild(opt);
+});
+let savedDoc = localStorage.getItem('lastSelectedDoctor');
+doctorSelect.value = DOCTORS.some(d=>d.name===savedDoc) ? savedDoc : DOCTORS[0].name;
+
+let activeDateFilter = 'today';
+let searchTerm = '';
+let allPatients = [];
+let loadError = null;
+
+function todayISO(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+async function fetchPatients(){
+  const btn = document.getElementById('refreshBtn');
+  btn.disabled = true;
+  btn.textContent = '... بيتحدث';
+  loadError = null;
+  try{
+    const url = new URL(APPS_SCRIPT_URL);
+    url.searchParams.set('action','list');
+    const res = await fetch(url.toString());
+    const json = await res.json();
+    if(json.status !== 'ok') throw new Error(json.message || 'خطأ غير معروف');
+    allPatients = json.data.map(p => ({ ...p, id: String(p.row) }));
+  }catch(err){
+    console.error(err);
+    loadError = err.message || String(err);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = '↻ تحديث';
+    render();
+  }
+}
+
+function isSameDay(iso, dateObj){
+  if(!iso) return false;
+  const d = new Date(iso);
+  return d.getFullYear()===dateObj.getFullYear() && d.getMonth()===dateObj.getMonth() && d.getDate()===dateObj.getDate();
+}
+
+function buildDateChips(){
+  const chipRow = document.getElementById('dateChips');
+  chipRow.innerHTML = '';
+  const chips = [ {key:'today', label:'اليوم'}, {key:'all', label:'كل المواعيد'} ];
+  chips.forEach(c=>{
+    const btn = document.createElement('button');
+    btn.className = 'filter-chip' + (activeDateFilter===c.key ? ' active' : '');
+    btn.textContent = c.label;
+    btn.onclick = ()=>{ activeDateFilter = c.key; render(); };
+    chipRow.appendChild(btn);
+  });
+}
+
+function statusMeta(status){
+  if(status==='تم الكشف') return {label:'تم الكشف', cls:'done'};
+  if(status==='طوارئ') return {label:'طوارئ', cls:'urgent'};
+  return {label:'في الانتظار', cls:'pending'};
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+}
+
+function render(){
+  buildDateChips();
+  const docName = doctorSelect.value;
+  localStorage.setItem('lastSelectedDoctor', docName);
+
+  const container = document.getElementById('patientList');
+
+  if(loadError){
+    container.innerHTML = `
+      <div class="load-state error-note">
+        <h3>مش قادرين نجيب البيانات</h3>
+        <p>${escapeHtml(loadError)}</p>
+        <p style="margin-top:8px;">تأكد إن رابط Apps Script صحيح، وإن النشر (Deploy) شغال بصلاحية "Anyone".</p>
+      </div>`;
+    document.getElementById('statToday').textContent = '—';
+    document.getElementById('statPending').textContent = '—';
+    document.getElementById('statUrgent').textContent = '—';
+    document.getElementById('statDoneCount').textContent = '—';
+    document.getElementById('listCount').textContent = '';
+    return;
+  }
+
+  let list = allPatients.filter(p => p.doctorName === docName);
+  const today = new Date();
+  if(activeDateFilter === 'today'){
+    list = list.filter(p => isSameDay(p.appointmentTime, today));
+  }
+  if(searchTerm){
+    const t = searchTerm.trim();
+    list = list.filter(p => (p.patientName||'').includes(t) || (p.phone||'').includes(t));
+  }
+  list.sort((a,b)=> new Date(a.appointmentTime||0) - new Date(b.appointmentTime||0));
+
+  const todaysAll = allPatients.filter(p => p.doctorName === docName && isSameDay(p.appointmentTime, today));
+  const doneCount = todaysAll.filter(p=>p.status==='تم الكشف').length;
+  const pendingCount = todaysAll.filter(p=>p.status!=='تم الكشف' && p.visitType!=='طوارئ').length;
+  const urgentCount = todaysAll.filter(p=>p.visitType==='طوارئ' && p.status!=='تم الكشف').length;
+
+  document.getElementById('statToday').textContent = todaysAll.length;
+  document.getElementById('statPending').textContent = pendingCount;
+  document.getElementById('statUrgent').textContent = urgentCount;
+  document.getElementById('statDoneCount').textContent = `${doneCount}/${todaysAll.length}`;
+
+  const ring = document.getElementById('progressRing');
+  const circumference = 119.4;
+  const ratio = todaysAll.length ? doneCount/todaysAll.length : 0;
+  ring.setAttribute('stroke-dashoffset', String(circumference * (1-ratio)));
+
+  document.getElementById('listCount').textContent = list.length ? `${list.length} مريض` : '';
+
+  container.innerHTML = '';
+  if(list.length === 0){
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="tooth-mark" style="margin:0 auto 12px;">🦷</div>
+        <h3>مفيش مواعيد هنا</h3>
+        <p>مفيش مرضى مطابقين للفلتر ده لحد دلوقتي. جرّب "كل المواعيد" أو دوس تحديث.</p>
+      </div>`;
+    return;
+  }
+
+  list.forEach(p=>{
+    const isUrgent = p.visitType === 'طوارئ' && p.status !== 'تم الكشف';
+    const meta = isUrgent ? {label:'طوارئ', cls:'urgent'} : statusMeta(p.status);
+    const d = p.appointmentTime ? new Date(p.appointmentTime) : null;
+    const timeStr = d ? d.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'}) : '--';
+    const dateStr = d ? d.toLocaleDateString('ar-EG',{day:'numeric',month:'short'}) : '';
+
+    const card = document.createElement('div');
+    card.className = `card ${meta.cls}`;
+    card.innerHTML = `
+      <div class="card-time">${timeStr}<span>${dateStr}</span></div>
+      <div class="card-body">
+        <h3>${escapeHtml(p.patientName||'بدون اسم')}</h3>
+        <div class="card-meta">
+          <span><b>${escapeHtml(p.phone||'—')}</b></span>
+          <span>${escapeHtml(p.visitType||'')}</span>
+          ${p.procedureType ? `<span>${escapeHtml(p.procedureType)}</span>` : ''}
+          <span class="badge ${meta.cls}">${meta.label}</span>
+        </div>
+        ${p.notes ? `<div class="card-notes">${escapeHtml(p.notes)}</div>` : ''}
+      </div>
+      <div class="card-actions">
+        ${p.phone ? `<a class="icon-btn" href="tel:${p.phone}">📞 اتصال</a>` : ''}
+        ${p.status !== 'تم الكشف'
+          ? `<button class="icon-btn primary done" data-row="${p.row}">✓ تم الكشف</button>`
+          : `<button class="icon-btn" data-row="${p.row}" data-undo="1">↺ تراجع</button>`}
+      </div>
+    `;
+    container.appendChild(card);
+  });
+
+  container.querySelectorAll('button[data-row]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const row = btn.getAttribute('data-row');
+      const undo = btn.getAttribute('data-undo');
+      const newStatus = undo ? 'قيد الانتظار' : 'تم الكشف';
+      btn.disabled = true;
+      btn.textContent = '...';
+      try{
+        await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'updateStatus', row: row, status: newStatus })
+        });
+        const target = allPatients.find(p=>String(p.row)===String(row));
+        if(target) target.status = newStatus;
+        render();
+      }catch(err){
+        alert('تعذر تحديث الحالة، جرب تاني.');
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
+document.getElementById('searchBox').addEventListener('input', e=>{ searchTerm = e.target.value; render(); });
+doctorSelect.addEventListener('change', render);
+document.getElementById('refreshBtn').addEventListener('click', fetchPatients);
+
+fetchPatients();
+setInterval(fetchPatients, 60000); // تحديث تلقائي كل دقيقة
+</script>
+</body>
+</html>
