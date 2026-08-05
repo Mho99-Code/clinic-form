@@ -60,6 +60,7 @@
             border-radius: 6px; 
             font-size: 16px; 
         }
+        select:disabled { background:#edf2f7; color:#718096; }
         button { 
             width: 100%; 
             padding: 14px; 
@@ -160,11 +161,8 @@
 
         <div class="form-group">
             <label>اختيار الطبيب المعالج:</label>
-            <select id="doctor_id" required>
-                <option value="">-- اختر الدكتور --</option>
-                <option value="dr_ahmed">د. عثمان هشام عثمان (تقويم أسنان)</option>
-                <option value="dr_sara">د. سارة (حشو وجذور)</option>
-                <option value="dr_omda">د. عمدة (جراحة وزراعة)</option>
+            <select id="doctor_id" required disabled>
+                <option value="">-- جاري تحميل قائمة الأطباء... --</option>
             </select>
         </div>
 
@@ -213,18 +211,46 @@
 </div>
 
 <script>
-    // 🔗 رابط Google Apps Script (بديل مجاني ودائم عن n8n + ngrok)
-    // ⚠️ بعد ما تعمل Deploy للسكريبت (Code.gs)، هتاخد رابط شكله:
-    //     https://script.google.com/macros/s/XXXXXXXXXXXX/exec
-    // الصقه هنا بدل الرابط ده:
-const N8N_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwDVqknhSxzCxiklWLOs8Bj5UQxrkrGMT84Eowdj6J4otB_291yLkZcUq9eqwjprAAS/exec';
+    // 🔗 رابط Google Apps Script — نفس الرابط في فورم الحجز ولوحة الطبيب
+    const N8N_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwDVqknhSxzCxiklWLOs8Bj5UQxrkrGMT84Eowdj6J4otB_291yLkZcUq9eqwjprAAS/exec';
+
     const DRAFT_KEY = 'dental_form_draft_v1';
     const form = document.getElementById('patientForm');
+    const doctorSelect = document.getElementById('doctor_id');
     const fieldIds = [
         'patient_name', 'patient_phone', 'national_id', 'doctor_id',
         'visit_type', 'procedure_type', 'appointment_time',
         'amount_paid', 'medical_notes'
     ];
+
+    // ---------- تحميل قائمة الأطباء من الشيت (بدل ما تكون ثابتة في الكود) ----------
+    let pendingDraftDoctorValue = null;
+
+    async function loadDoctors() {
+        try {
+            const url = new URL(N8N_WEBHOOK_URL);
+            url.searchParams.set('action', 'doctors');
+            const res = await fetch(url.toString());
+            const json = await res.json();
+            if (json.status !== 'ok' || !Array.isArray(json.data) || json.data.length === 0) {
+                throw new Error(json.message || 'لا يوجد أطباء مسجلين');
+            }
+            doctorSelect.innerHTML = '<option value="">-- اختر الدكتور --</option>';
+            json.data.forEach(doc => {
+                const opt = document.createElement('option');
+                opt.value = doc.key;
+                opt.textContent = doc.label;
+                doctorSelect.appendChild(opt);
+            });
+            doctorSelect.disabled = false;
+            if (pendingDraftDoctorValue) {
+                doctorSelect.value = pendingDraftDoctorValue;
+            }
+        } catch (err) {
+            console.error(err);
+            doctorSelect.innerHTML = '<option value="">⚠️ تعذر تحميل قائمة الأطباء - أعد تحميل الصفحة</option>';
+        }
+    }
 
     // ---------- استرجاع مسودة محفوظة محلياً (لو فيه اتصال اتقطع قبل كده) ----------
     function getSavedDraft() {
@@ -253,7 +279,12 @@ const N8N_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwDVqknhSxzCxik
     function applyDraft(draft) {
         fieldIds.forEach(id => {
             if (draft[id] !== undefined) {
-                document.getElementById(id).value = draft[id];
+                if (id === 'doctor_id') {
+                    pendingDraftDoctorValue = draft[id]; // القايمة لسه بتتحمل غالبًا، فبنأجل التطبيق
+                    if (!doctorSelect.disabled) doctorSelect.value = draft[id];
+                } else {
+                    document.getElementById(id).value = draft[id];
+                }
             }
         });
     }
@@ -271,6 +302,8 @@ const N8N_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwDVqknhSxzCxik
         document.getElementById('recoveredBanner').style.display = 'none';
     });
 
+    loadDoctors();
+
     // ---------- إرسال الفورم ----------
     form.addEventListener('submit', async function (e) {
         e.preventDefault();
@@ -287,8 +320,8 @@ const N8N_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwDVqknhSxzCxik
             patient_name: document.getElementById('patient_name').value,
             patient_phone: document.getElementById('patient_phone').value,
             national_id: document.getElementById('national_id').value || 'لا يوجد',
-            doctor_id: document.getElementById('doctor_id').value,
-            doctor_name: document.getElementById('doctor_id').options[document.getElementById('doctor_id').selectedIndex].text,
+            doctor_id: doctorSelect.value,
+            doctor_name: doctorSelect.options[doctorSelect.selectedIndex].text,
             visit_type: document.getElementById('visit_type').value,
             procedure_type: document.getElementById('procedure_type').value || 'غير محدد',
             appointment_time: document.getElementById('appointment_time').value || 'غير محدد',
