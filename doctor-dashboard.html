@@ -155,11 +155,6 @@
     </div>
   </header>
 
-  <!-- عدّل الرابط ده لو غيّرت رابط النشر (Deploy) بتاع Code.gs -->
-  <div class="setup-note" id="configNote">
-    🔗 الرابط اللي بتقرأ منه الصفحة دي: <code id="urlDisplay"></code>
-    <br>لو مش شغال، افتح <code>لوحة_الطبيب.html</code> بمحرر نصوص وغيّر قيمة <code>APPS_SCRIPT_URL</code> في أول السكريبت.
-  </div>
 
   <div class="stats">
     <div class="stat-card ring">
@@ -194,7 +189,7 @@
 <script>
 // ⚠️ نفس رابط Google Apps Script المستخدم في فورم الاستقبال (بعد Deploy)
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwDVqknhSxzCxiklWLOs8Bj5UQxrkrGMT84Eowdj6J4otB_291yLkZcUq9eqwjprAAS/exec';
-document.getElementById('urlDisplay').textContent = APPS_SCRIPT_URL;
+
 
 const AUTH_TOKEN_KEY = 'doctorAuthToken';
 const AUTH_KEY_KEY = 'doctorAuthKey';
