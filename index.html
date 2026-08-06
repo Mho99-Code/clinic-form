@@ -10,7 +10,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
         }
         body { 
-            background-color: #70ffff; 
+            background-color: #f0f4f8; 
             padding: 20px; 
             margin: 0; 
         }
@@ -127,6 +127,52 @@
             input, select, textarea { font-size: 17px; padding: 13px; }
             button { font-size: 18px; padding: 15px; }
         }
+
+        /* ---------- شاشة الإيصال ---------- */
+        .receipt-overlay {
+            display: none;
+            position: fixed; inset: 0; background: rgba(26,54,93,0.55);
+            align-items: center; justify-content: center; padding: 16px; z-index: 100;
+        }
+        .receipt-card {
+            background: #fff; border-radius: 14px; max-width: 380px; width: 100%;
+            max-height: 90vh; overflow-y: auto; padding: 22px 20px;
+        }
+        .receipt-head { text-align: center; margin-bottom: 14px; }
+        .receipt-head .tooth { font-size: 34px; line-height: 1; }
+        .receipt-head .clinic { color: #2b6cb0; font-weight: bold; font-size: 14px; margin-top: 4px; }
+        .receipt-head .kind { font-size: 12.5px; color: #718096; margin-top: 2px; }
+        .receipt-number {
+            text-align: center; font-family: monospace; font-size: 17px; font-weight: bold;
+            background: #ebf8ff; color: #2c5282; border-radius: 8px; padding: 8px; margin: 12px 0 16px;
+            letter-spacing: 1px;
+        }
+        .receipt-rows { font-size: 14px; line-height: 2.1; border-top: 1px dashed #cbd5e0; border-bottom: 1px dashed #cbd5e0; padding: 10px 0; margin-bottom: 14px; }
+        .receipt-rows .r { display: flex; justify-content: space-between; gap: 10px; }
+        .receipt-rows .r b { color: #1a365d; }
+        .receipt-amount { text-align: center; font-size: 22px; font-weight: bold; color: #22543d; margin-bottom: 14px; }
+        .receipt-amount span { font-size: 13px; color: #4a5568; display: block; font-weight: normal; margin-bottom: 2px; }
+        .receipt-qr { text-align: center; margin-bottom: 6px; }
+        .receipt-qr img { width: 130px; height: 130px; }
+        .receipt-qr p { font-size: 11px; color: #a0aec0; margin: 4px 0 0; }
+        .receipt-actions { display: flex; gap: 10px; margin-top: 16px; }
+        .receipt-actions button { padding: 12px; font-size: 14.5px; }
+        .receipt-actions .btn-secondary { background: #a0aec0; }
+
+        /* ---------- تنسيق الطباعة (58mm ورق طابعة إيصالات حرارية) ---------- */
+        @media print {
+            @page { size: 58mm auto; margin: 2mm; }
+            body * { visibility: hidden; }
+            #receiptPrintArea, #receiptPrintArea * { visibility: visible; }
+            #receiptPrintArea {
+                position: absolute; top: 0; left: 0; width: 54mm;
+                font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 10.5px; color: #000;
+            }
+            #receiptPrintArea .receipt-qr img { width: 90px; height: 90px; }
+            #receiptPrintArea .receipt-number { background: none; padding: 4px 0; font-size: 13px; }
+            #receiptPrintArea .receipt-amount { font-size: 15px; }
+            .receipt-actions { display: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -210,9 +256,41 @@
     <div id="statusMessage" class="status"></div>
 </div>
 
+<!-- شاشة الإيصال - بتظهر بعد نجاح الحفظ -->
+<div class="receipt-overlay" id="receiptOverlay">
+  <div class="receipt-card">
+    <div id="receiptPrintArea">
+      <div class="receipt-head">
+        <div class="tooth">🦷</div>
+        <div class="clinic">White Smile — عيادة الأسنان</div>
+        <div class="kind">إيصال استلام مبلغ</div>
+      </div>
+      <div class="receipt-number" id="rcNumber">WS-000000</div>
+      <div class="receipt-rows">
+        <div class="r"><span>المريض</span><b id="rcName">-</b></div>
+        <div class="r"><span>الطبيب</span><b id="rcDoctor">-</b></div>
+        <div class="r"><span>نوع الزيارة</span><b id="rcVisitType">-</b></div>
+        <div class="r"><span>الإجراء</span><b id="rcProcedure">-</b></div>
+        <div class="r"><span>التاريخ والوقت</span><b id="rcTime">-</b></div>
+      </div>
+      <div class="receipt-amount"><span>المبلغ المدفوع</span><span id="rcAmount">0 جنيه</span></div>
+      <div class="receipt-qr">
+        <img id="rcQr" src="" alt="QR تحقق من الإيصال">
+        <p>امسح الكود للتأكد من صحة الإيصال</p>
+      </div>
+    </div>
+    <div class="receipt-actions">
+      <button type="button" id="rcPrintBtn">🖨️ طباعة</button>
+      <button type="button" id="rcNewBtn" class="btn-secondary">مريض جديد</button>
+    </div>
+  </div>
+</div>
+
 <script>
     // 🔗 رابط Google Apps Script — نفس الرابط في فورم الحجز ولوحة الطبيب
     const N8N_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwDVqknhSxzCxiklWLOs8Bj5UQxrkrGMT84Eowdj6J4otB_291yLkZcUq9eqwjprAAS/exec';
+    // 🔗 رابط صفحة التحقق من الإيصال (لازم تكون مرفوعة على نفس الاستضافة) — عدّله لو غيّرت اسم الفولدر
+    const VERIFY_PAGE_URL = 'https://mho99-code.github.io/clinic-form/verify.html';
 
     const DRAFT_KEY = 'dental_form_draft_v1';
     const form = document.getElementById('patientForm');
@@ -304,6 +382,36 @@
 
     loadDoctors();
 
+    // ---------- شاشة الإيصال ----------
+    function showReceipt(payload, result) {
+        const receiptNumber = result.receiptNumber || '—';
+        document.getElementById('rcNumber').textContent = receiptNumber;
+        document.getElementById('rcName').textContent = payload.patient_name || '-';
+        document.getElementById('rcDoctor').textContent = payload.doctor_name || '-';
+        document.getElementById('rcVisitType').textContent = payload.visit_type || '-';
+        document.getElementById('rcProcedure').textContent = payload.procedure_type || 'غير محدد';
+        document.getElementById('rcTime').textContent = result.receiptTime || new Date().toLocaleString('ar-EG');
+        const amountNum = parseFloat(payload.amount_paid);
+        document.getElementById('rcAmount').textContent = (isNaN(amountNum) ? payload.amount_paid : amountNum.toLocaleString('ar-EG')) + ' جنيه';
+
+        if (receiptNumber && receiptNumber !== '—') {
+            const verifyUrl = VERIFY_PAGE_URL + '?receipt=' + encodeURIComponent(receiptNumber);
+            const qrSrc = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(verifyUrl);
+            document.getElementById('rcQr').src = qrSrc;
+            document.getElementById('rcQr').style.display = 'inline-block';
+        } else {
+            document.getElementById('rcQr').style.display = 'none';
+        }
+
+        document.getElementById('receiptOverlay').style.display = 'flex';
+    }
+
+    document.getElementById('rcPrintBtn').addEventListener('click', () => window.print());
+    document.getElementById('rcNewBtn').addEventListener('click', () => {
+        document.getElementById('receiptOverlay').style.display = 'none';
+        document.getElementById('patient_name').focus();
+    });
+
     // ---------- إرسال الفورم ----------
     form.addEventListener('submit', async function (e) {
         e.preventDefault();
@@ -353,6 +461,7 @@
                 statusDiv.className = 'status success';
                 statusDiv.innerText = '✅ تم إرسال البيانات واستدعاء الدكتور بنجاح!';
                 statusDiv.style.display = 'block';
+                showReceipt(payload, result);
                 form.reset();
                 clearDraft();
                 document.getElementById('recoveredBanner').style.display = 'none';
