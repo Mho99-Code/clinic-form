@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تحقق من الإيصال — White Smile</title>
+<style>
+  * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+  body { background:#f0f4f8; margin:0; padding:20px; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  .card { max-width:400px; width:100%; background:#fff; border-radius:14px; box-shadow:0 4px 15px rgba(0,0,0,0.1); padding:28px 24px; text-align:center; }
+  .tooth { font-size:38px; }
+  .clinic { color:#2b6cb0; font-weight:bold; font-size:14px; margin-top:4px; }
+  h2 { margin:16px 0 4px; font-size:18px; color:#1a365d; }
+
+  .state { display:none; }
+  .state.active { display:block; }
+
+  .spinner { width:36px; height:36px; border:4px solid #cbd5e0; border-top-color:#2b6cb0; border-radius:50%; margin:20px auto; animation:spin .8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .badge { display:inline-block; padding:8px 18px; border-radius:999px; font-weight:bold; font-size:14px; margin:14px 0; }
+  .badge.valid { background:#c6f6d5; color:#22543d; }
+  .badge.invalid { background:#fed7d7; color:#742a2a; }
+
+  .rows { text-align:right; font-size:14px; line-height:2.1; border-top:1px dashed #cbd5e0; padding-top:12px; margin-top:8px; }
+  .rows .r { display:flex; justify-content:space-between; gap:10px; }
+  .rows .r b { color:#1a365d; }
+
+  .sub { font-size:13px; color:#718096; margin-top:6px; line-height:1.8; }
+  .receipt-no { font-family:monospace; font-size:13px; color:#4a5568; margin-top:10px; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="tooth">🦷</div>
+  <div class="clinic">White Smile — عيادة الأسنان</div>
+
+  <div class="state active" id="loadingState">
+    <div class="spinner"></div>
+    <p class="sub">جاري التحقق من الإيصال...</p>
+  </div>
+
+  <div class="state" id="noReceiptState">
+    <h2>مفيش رقم إيصال</h2>
+    <p class="sub">الرابط ده لازم يكون فيه رقم إيصال (?receipt=...). امسح الـ QR من على الإيصال نفسه.</p>
+  </div>
+
+  <div class="state" id="validState">
+    <span class="badge valid">✅ إيصال صحيح</span>
+    <div class="rows">
+      <div class="r"><span>المريض</span><b id="vName">-</b></div>
+      <div class="r"><span>الطبيب</span><b id="vDoctor">-</b></div>
+      <div class="r"><span>نوع الزيارة</span><b id="vVisitType">-</b></div>
+      <div class="r"><span>المبلغ المدفوع</span><b id="vAmount">-</b></div>
+      <div class="r"><span>التاريخ</span><b id="vTime">-</b></div>
+    </div>
+    <div class="receipt-no" id="vReceiptNo"></div>
+  </div>
+
+  <div class="state" id="invalidState">
+    <span class="badge invalid">❌ إيصال غير موجود</span>
+    <p class="sub">رقم الإيصال ده مش مسجل عندنا. ممكن يكون غلط أو مزوّر — تواصل مع الاستقبال للتأكد.</p>
+    <div class="receipt-no" id="invReceiptNo"></div>
+  </div>
+
+  <div class="state" id="errorState">
+    <span class="badge invalid">⚠️ تعذر التحقق</span>
+    <p class="sub" id="errorMsg">حصل خطأ في الاتصال بالسيرفر، جرب تاني.</p>
+  </div>
+</div>
+
+<script>
+  // ⚠️ نفس رابط Google Apps Script المستخدم في باقي الصفحات
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwDVqknhSxzCxiklWLOs8Bj5UQxrkrGMT84Eowdj6J4otB_291yLkZcUq9eqwjprAAS/exec';
+
+  function showState(id){
+    document.querySelectorAll('.state').forEach(el => el.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const receipt = (params.get('receipt') || '').trim();
+
+  if (!receipt) {
+    showState('noReceiptState');
+  } else {
+    (async () => {
+      try {
+        const url = new URL(APPS_SCRIPT_URL);
+        url.searchParams.set('action', 'verify');
+        url.searchParams.set('receipt', receipt);
+        const res = await fetch(url.toString());
+        const data = await res.json();
+
+        if (data.status !== 'ok') throw new Error(data.message || 'خطأ غير معروف');
+
+        if (data.valid && data.data) {
+          document.getElementById('vName').textContent = data.data.patientName || '-';
+          document.getElementById('vDoctor').textContent = data.data.doctorName || '-';
+          document.getElementById('vVisitType').textContent = data.data.visitType || '-';
+          const amt = parseFloat(data.data.amountPaid);
+          document.getElementById('vAmount').textContent = (isNaN(amt) ? data.data.amountPaid : amt.toLocaleString('ar-EG')) + ' جنيه';
+          document.getElementById('vTime').textContent = data.data.timestamp || '-';
+          document.getElementById('vReceiptNo').textContent = data.data.receiptNumber;
+          showState('validState');
+        } else {
+          document.getElementById('invReceiptNo').textContent = receipt;
+          showState('invalidState');
+        }
+      } catch (err) {
+        document.getElementById('errorMsg').textContent = err.message || String(err);
+        showState('errorState');
+      }
+    })();
+  }
+</script>
+
+</body>
+</html>
