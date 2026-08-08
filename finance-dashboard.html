@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة الحسابات — White Smile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F6FAF9; --surface:#FFFFFF; --teal:#0E6B62; --teal-deep:#0A4F49; --teal-tint:#E4F3F0;
+    --ink:#14302B; --muted:#6B8079; --border:#DCE8E5;
+    --done:#2F9E68; --done-tint:#E4F5EC;
+    --pending:#E0982B; --pending-tint:#FBF0DD;
+    --urgent:#D64550; --urgent-tint:#FBE6E7;
+    --radius:16px; --shadow:0 2px 10px rgba(14,107,98,0.06), 0 1px 2px rgba(14,107,98,0.08);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Tajawal',sans-serif;min-height:100vh;}
+  .wrap{max-width:1000px;margin:0 auto;padding:20px 18px 60px;}
+
+  header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px 4px 22px;flex-wrap:wrap;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .tooth-mark{width:44px;height:44px;border-radius:12px;background:linear-gradient(155deg,var(--teal),var(--teal-deep));display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;flex-shrink:0;box-shadow:var(--shadow);}
+  .brand-text h1{font-family:'Almarai',sans-serif;font-weight:800;font-size:20px;margin:0;color:var(--teal-deep);}
+  .brand-text p{margin:2px 0 0;font-size:12.5px;color:var(--muted);}
+  #logoutBtn{border:1.5px solid var(--border);background:var(--surface);border-radius:10px;padding:8px 14px;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;}
+  #logoutBtn:hover{color:var(--urgent);border-color:#F3C4C8;}
+
+  .login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .login-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px 28px;box-shadow:var(--shadow);text-align:center;}
+  .login-card h1{font-family:'Almarai',sans-serif;font-weight:800;font-size:19px;color:var(--teal-deep);margin:14px 0 4px;}
+  .login-card p.sub{font-size:13px;color:var(--muted);margin:0 0 22px;}
+  .login-field{text-align:right;margin-bottom:14px;}
+  .login-field label{display:block;font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:6px;}
+  .login-field input{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 13px;font-family:'Tajawal',sans-serif;font-size:14.5px;color:var(--ink);background:var(--bg);}
+  .login-field input:focus{outline:none;border-color:var(--teal);}
+  #loginBtn{width:100%;margin-top:6px;background:var(--teal);color:#fff;border:none;border-radius:10px;padding:12px;font-family:'Tajawal',sans-serif;font-weight:700;font-size:14.5px;cursor:pointer;}
+  #loginBtn:hover{background:var(--teal-deep);}
+  .login-error{color:var(--urgent);font-size:12.5px;font-weight:700;margin-top:12px;display:none;}
+
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:20px;}
+  .toolbar input[type="date"]{border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-family:'Tajawal',sans-serif;font-size:13px;background:var(--surface);color:var(--ink);}
+  .chip{border:1.5px solid var(--border);background:var(--surface);border-radius:999px;padding:8px 16px;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;}
+  .chip.active{background:var(--teal);border-color:var(--teal);color:#fff;}
+  #applyRangeBtn{border:1.5px solid var(--teal);background:var(--teal-tint);color:var(--teal-deep);border-radius:10px;padding:9px 16px;font-size:12.5px;font-weight:700;cursor:pointer;}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+  @media (max-width:760px){ .stat-grid{grid-template-columns:repeat(2,1fr);} }
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 14px;box-shadow:var(--shadow);}
+  .stat-card .num{font-family:'Almarai',sans-serif;font-weight:800;font-size:22px;color:var(--teal-deep);}
+  .stat-card .num.negative{color:var(--urgent);}
+  .stat-card .lbl{font-size:12.5px;color:var(--muted);margin-top:2px;}
+
+  .section-head{display:flex;align-items:baseline;justify-content:space-between;margin:26px 2px 12px;}
+  .section-head h2{font-family:'Almarai',sans-serif;font-weight:800;font-size:16.5px;margin:0;color:var(--ink);}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow);}
+
+  .doctor-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 4px;border-bottom:1px solid var(--border);}
+  .doctor-row:last-child{border-bottom:none;}
+  .doctor-row .name{font-weight:700;font-size:14px;}
+  .doctor-row .meta{font-size:12px;color:var(--muted);margin-top:2px;}
+  .doctor-row .nums{text-align:left;}
+  .doctor-row .share{font-family:'Almarai',sans-serif;font-weight:800;font-size:15px;color:var(--teal-deep);}
+  .doctor-row .income{font-size:11.5px;color:var(--muted);}
+
+  .cat-row{display:flex;align-items:center;gap:10px;padding:8px 4px;}
+  .cat-row .bar-track{flex:1;height:8px;background:var(--teal-tint);border-radius:4px;overflow:hidden;}
+  .cat-row .bar-fill{height:100%;background:var(--pending);border-radius:4px;}
+  .cat-row .cat-name{min-width:110px;font-size:13px;}
+  .cat-row .cat-amt{min-width:80px;text-align:left;font-family:'Almarai',sans-serif;font-weight:700;font-size:13px;}
+
+  .expense-form{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px;}
+  .expense-form .full{grid-column:1/-1;}
+  .expense-form label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px;}
+  .expense-form input, .expense-form select{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-family:'Tajawal',sans-serif;font-size:13.5px;background:var(--bg);color:var(--ink);}
+  #addExpenseBtn{grid-column:1/-1;background:var(--teal);color:#fff;border:none;border-radius:10px;padding:12px;font-weight:700;font-size:14px;cursor:pointer;margin-top:4px;}
+  #addExpenseBtn:hover{background:var(--teal-deep);}
+  #expenseMsg{font-size:12.5px;margin-top:8px;display:none;}
+  #expenseMsg.ok{color:var(--done);}
+  #expenseMsg.err{color:var(--urgent);}
+
+  .expense-list-row{display:flex;justify-content:space-between;align-items:center;padding:9px 4px;border-bottom:1px solid var(--border);font-size:13px;}
+  .expense-list-row:last-child{border-bottom:none;}
+  .expense-list-row .d{color:var(--muted);font-size:11.5px;}
+  .expense-list-row .amt{font-family:'Almarai',sans-serif;font-weight:700;color:var(--urgent);}
+
+  .empty-state, .load-state{text-align:center;padding:36px 20px;color:var(--muted);background:var(--surface);border:1.5px dashed var(--border);border-radius:var(--radius);}
+  .error-note{background:var(--urgent-tint);color:var(--urgent);border:1px solid #F3C4C8;}
+</style>
+</head>
+<body>
+
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="tooth-mark" style="margin:0 auto;">🦷</div>
+    <h1>لوحة الحسابات</h1>
+    <p class="sub">White Smile — دخول المدير فقط</p>
+    <div class="login-field">
+      <label>كلمة المرور</label>
+      <input type="password" id="loginPassword" placeholder="••••••••">
+    </div>
+    <button id="loginBtn">دخول</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<div class="wrap" id="dashboardRoot" style="display:none;">
+
+  <header>
+    <div class="brand">
+      <div class="tooth-mark">🦷</div>
+      <div class="brand-text">
+        <h1>لوحة الحسابات</h1>
+        <p>White Smile — الدخل، المصروفات، ونصيب كل دكتور</p>
+      </div>
+    </div>
+    <button id="logoutBtn">تسجيل خروج</button>
+  </header>
+
+  <div class="toolbar">
+    <button class="chip active" data-preset="month">الشهر الحالي</button>
+    <button class="chip" data-preset="today">اليوم</button>
+    <button class="chip" data-preset="custom">فترة مخصصة</button>
+    <input type="date" id="fromDate" style="display:none;">
+    <input type="date" id="toDate" style="display:none;">
+    <button id="applyRangeBtn" style="display:none;">تطبيق</button>
+  </div>
+
+  <div id="loadArea"></div>
+
+  <div id="contentArea" style="display:none;">
+    <div class="stat-grid">
+      <div class="stat-card"><div class="num" id="sIncome">0</div><div class="lbl">إجمالي الدخل</div></div>
+      <div class="stat-card"><div class="num" id="sExpenses">0</div><div class="lbl">إجمالي المصروفات</div></div>
+      <div class="stat-card"><div class="num" id="sShares">0</div><div class="lbl">نسب الأطباء</div></div>
+      <div class="stat-card"><div class="num" id="sNet">0</div><div class="lbl">صافي الربح</div></div>
+    </div>
+
+    <div class="section-head"><h2>نصيب كل دكتور</h2></div>
+    <div class="card" id="doctorsCard"></div>
+
+    <div class="section-head"><h2>المصروفات حسب التصنيف</h2></div>
+    <div class="card" id="categoryCard"></div>
+
+    <div class="section-head"><h2>تسجيل مصروف جديد</h2></div>
+    <div class="card">
+      <div class="expense-form">
+        <div>
+          <label>التصنيف</label>
+          <select id="expCategory">
+            <option>إيجار</option>
+            <option>خامات ومستلزمات</option>
+            <option>رواتب</option>
+            <option>فواتير وخدمات</option>
+            <option>صيانة</option>
+            <option>أخرى</option>
+          </select>
+        </div>
+        <div>
+          <label>المبلغ (جنيه)</label>
+          <input type="number" id="expAmount" step="0.01" placeholder="0.00">
+        </div>
+        <div>
+          <label>التاريخ</label>
+          <input type="date" id="expDate">
+        </div>
+        <div>
+          <label>ملاحظات (اختياري)</label>
+          <input type="text" id="expNotes" placeholder="تفاصيل إضافية">
+        </div>
+        <button id="addExpenseBtn">حفظ المصروف</button>
+      </div>
+      <div id="expenseMsg"></div>
+    </div>
+
+    <div class="section-head"><h2>آخر المصروفات المسجّلة</h2></div>
+    <div class="card" id="expenseListCard"></div>
+  </div>
+
+</div>
+
+<script>
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwDVqknhSxzCxiklWLOs8Bj5UQxrkrGMT84Eowdj6J4otB_291yLkZcUq9eqwjprAAS/exec';
+
+const AUTH_TOKEN_KEY = 'managerAuthToken';
+let authToken = null;
+let currentRangePreset = 'month';
+let currentFrom = null;
+let currentTo = null;
+
+function fmt(n){
+  const num = Number(n) || 0;
+  return num.toLocaleString('ar-EG', { maximumFractionDigits: 2 }) + ' جنيه';
+}
+
+function showLogin(message){
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('dashboardRoot').style.display = 'none';
+  const errBox = document.getElementById('loginError');
+  if(message){ errBox.textContent = message; errBox.style.display = 'block'; }
+}
+
+function enterDashboard(token){
+  authToken = token;
+  localStorage.setItem(AUTH_TOKEN_KEY, token);
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('dashboardRoot').style.display = 'block';
+  loadFinance();
+}
+
+document.getElementById('loginBtn').addEventListener('click', async ()=>{
+  const pass = document.getElementById('loginPassword').value;
+  const errBox = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+  if(!pass){ errBox.textContent='اكتب كلمة المرور'; errBox.style.display='block'; return; }
+  errBox.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'جاري الدخول...';
+  try{
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action:'managerLogin', password: pass })
+    });
+    const data = await res.json();
+    if(data.status === 'ok' && data.token){
+      document.getElementById('loginPassword').value = '';
+      enterDashboard(data.token);
+    }else{
+      errBox.textContent = data.message || 'كلمة مرور غير صحيحة';
+      errBox.style.display = 'block';
+    }
+  }catch(err){
+    errBox.textContent = 'تعذر الاتصال بالسيرفر، جرب تاني';
+    errBox.style.display = 'block';
+  }finally{
+    btn.disabled = false; btn.textContent = 'دخول';
+  }
+});
+document.getElementById('loginPassword').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') document.getElementById('loginBtn').click();
+});
+document.getElementById('logoutBtn').addEventListener('click', ()=>{
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  authToken = null;
+  showLogin();
+});
+
+document.querySelectorAll('.chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    currentRangePreset = chip.dataset.preset;
+    const showCustom = currentRangePreset === 'custom';
+    document.getElementById('fromDate').style.display = showCustom ? 'inline-block' : 'none';
+    document.getElementById('toDate').style.display = showCustom ? 'inline-block' : 'none';
+    document.getElementById('applyRangeBtn').style.display = showCustom ? 'inline-block' : 'none';
+    if(!showCustom){ currentFrom = null; currentTo = null; loadFinance(); }
+  });
+});
+document.getElementById('applyRangeBtn').addEventListener('click', ()=>{
+  currentFrom = document.getElementById('fromDate').value || null;
+  currentTo = document.getElementById('toDate').value || null;
+  loadFinance();
+});
+
+async function loadFinance(){
+  const loadArea = document.getElementById('loadArea');
+  const content = document.getElementById('contentArea');
+  loadArea.innerHTML = '<div class="load-state">جاري تحميل الحسابات...</div>';
+  content.style.display = 'none';
+
+  try{
+    const url = new URL(APPS_SCRIPT_URL);
+    url.searchParams.set('action','finance');
+    url.searchParams.set('token', authToken || '');
+    if(currentRangePreset === 'today'){
+      const t = new Date();
+      const iso = t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+      url.searchParams.set('from', iso);
+      url.searchParams.set('to', iso);
+    }else if(currentRangePreset === 'custom' && currentFrom && currentTo){
+      url.searchParams.set('from', currentFrom);
+      url.searchParams.set('to', currentTo);
+    }
+    const res = await fetch(url.toString());
+    const data = await res.json();
+
+    if(data.unauthorized){
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      showLogin('انتهت الجلسة، سجل دخول تاني من فضلك');
+      return;
+    }
+    if(data.status !== 'ok') throw new Error(data.message || 'خطأ غير معروف');
+
+    loadArea.innerHTML = '';
+    content.style.display = 'block';
+    renderFinance(data);
+  }catch(err){
+    loadArea.innerHTML = `<div class="load-state error-note">${escapeHtml(err.message || String(err))}</div>`;
+  }
+}
+
+function renderFinance(data){
+  document.getElementById('sIncome').textContent = fmt(data.totalIncome);
+  document.getElementById('sExpenses').textContent = fmt(data.totalExpenses);
+  document.getElementById('sShares').textContent = fmt(data.totalDoctorShares);
+  const netEl = document.getElementById('sNet');
+  netEl.textContent = fmt(data.netProfit);
+  netEl.classList.toggle('negative', data.netProfit < 0);
+
+  const doctorsCard = document.getElementById('doctorsCard');
+  doctorsCard.innerHTML = '';
+  if(data.byDoctor.length === 0){
+    doctorsCard.innerHTML = '<div class="empty-state">مفيش أطباء مسجلين</div>';
+  }else{
+    data.byDoctor.forEach(d=>{
+      const row = document.createElement('div');
+      row.className = 'doctor-row';
+      row.innerHTML = `
+        <div>
+          <div class="name">${escapeHtml(d.label)}</div>
+          <div class="meta">${d.patientCount} حالة · نسبة ${d.percentage}%</div>
+        </div>
+        <div class="nums">
+          <div class="share">${fmt(d.share)}</div>
+          <div class="income">من دخل ${fmt(d.income)}</div>
+        </div>`;
+      doctorsCard.appendChild(row);
+    });
+  }
+
+  const catCard = document.getElementById('categoryCard');
+  catCard.innerHTML = '';
+  if(data.categoryBreakdown.length === 0){
+    catCard.innerHTML = '<div class="empty-state">مفيش مصروفات مسجلة في الفترة دي</div>';
+  }else{
+    const maxAmt = Math.max(...data.categoryBreakdown.map(c=>c.amount), 1);
+    data.categoryBreakdown.forEach(c=>{
+      const row = document.createElement('div');
+      row.className = 'cat-row';
+      row.innerHTML = `
+        <span class="cat-name">${escapeHtml(c.category)}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${(c.amount/maxAmt*100)}%"></div></div>
+        <span class="cat-amt">${fmt(c.amount)}</span>`;
+      catCard.appendChild(row);
+    });
+  }
+
+  const expList = document.getElementById('expenseListCard');
+  expList.innerHTML = '';
+  if(data.expenses.length === 0){
+    expList.innerHTML = '<div class="empty-state">لسه مفيش مصروفات مسجلة</div>';
+  }else{
+    data.expenses.slice(0,15).forEach(exp=>{
+      const row = document.createElement('div');
+      row.className = 'expense-list-row';
+      row.innerHTML = `
+        <div>
+          <div>${escapeHtml(exp.category)}${exp.notes ? ' — ' + escapeHtml(exp.notes) : ''}</div>
+          <div class="d">${escapeHtml(exp.date)}</div>
+        </div>
+        <div class="amt">-${fmt(exp.amount)}</div>`;
+      expList.appendChild(row);
+    });
+  }
+}
+
+document.getElementById('addExpenseBtn').addEventListener('click', async ()=>{
+  const category = document.getElementById('expCategory').value;
+  const amount = document.getElementById('expAmount').value;
+  const date = document.getElementById('expDate').value;
+  const notes = document.getElementById('expNotes').value;
+  const msg = document.getElementById('expenseMsg');
+  const btn = document.getElementById('addExpenseBtn');
+
+  if(!amount || parseFloat(amount) <= 0){
+    msg.textContent = 'اكتب مبلغ صحيح'; msg.className = 'err'; msg.style.display='block';
+    return;
+  }
+  btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+  try{
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action:'addExpense', token: authToken, category, amount, date, notes })
+    });
+    const data = await res.json();
+    if(data.unauthorized){
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      showLogin('انتهت الجلسة، سجل دخول تاني من فضلك');
+      return;
+    }
+    if(data.status !== 'ok') throw new Error(data.message || 'فشل الحفظ');
+
+    msg.textContent = '✅ اتسجل المصروف بنجاح'; msg.className = 'ok'; msg.style.display='block';
+    document.getElementById('expAmount').value = '';
+    document.getElementById('expNotes').value = '';
+    loadFinance();
+  }catch(err){
+    msg.textContent = err.message || String(err); msg.className = 'err'; msg.style.display='block';
+  }finally{
+    btn.disabled = false; btn.textContent = 'حفظ المصروف';
+  }
+});
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+}
+
+document.getElementById('expDate').valueAsDate = new Date();
+
+const savedToken = localStorage.getItem(AUTH_TOKEN_KEY);
+if(savedToken){
+  enterDashboard(savedToken);
+}else{
+  showLogin();
+}
+</script>
+</body>
+</html>
